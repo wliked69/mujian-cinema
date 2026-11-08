@@ -1,0 +1,253 @@
+[
+  {
+    "id": "demo-dune",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "沙丘2",
+    "originalTitle": "Dune: Part Two",
+    "year": 2024,
+    "rating": 8.5,
+    "genres": [
+      "科幻",
+      "冒险"
+    ],
+    "director": "丹尼斯·维伦纽瓦",
+    "duration": "166 分钟",
+    "overview": "保罗与弗雷曼人并肩走入沙漠深处。在家族、命运与爱之间，一场关乎未来的选择正缓缓展开。",
+    "poster": "/assets/dune.jpg",
+    "backdrop": "/assets/dune-backdrop.jpg",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 693134
+  },
+  {
+    "id": "demo-interstellar",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "星际穿越",
+    "originalTitle": "Interstellar",
+    "year": 2014,
+    "rating": 8.7,
+    "genres": [
+      "科幻",
+      "冒险"
+    ],
+    "director": "克里斯托弗·诺兰",
+    "duration": "169 分钟",
+    "overview": "当人类的未来悬于一线，一组探险者穿越虫洞，在遥远星系间寻找新的家园。爱与时间，成为连接宇宙两端的坐标。",
+    "poster": "/assets/interstellar.jpg",
+    "backdrop": "/assets/interstellar-backdrop.jpg",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 157336
+  },
+  {
+    "id": "demo-grand",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "布达佩斯大饭店",
+    "originalTitle": "The Grand Budapest Hotel",
+    "year": 2014,
+    "rating": 8.1,
+    "genres": [
+      "剧情",
+      "喜剧"
+    ],
+    "director": "韦斯·安德森",
+    "duration": "100 分钟",
+    "overview": "一位传奇礼宾员与年轻门童的友谊，串联起一幅画作、一笔遗产与旧欧洲最后的浪漫。",
+    "poster": "/assets/grand.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 120467
+  },
+  {
+    "id": "demo-spirited",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "千与千寻",
+    "originalTitle": "Spirited Away",
+    "year": 2001,
+    "rating": 8.5,
+    "genres": [
+      "动画",
+      "奇幻"
+    ],
+    "director": "宫崎骏",
+    "duration": "125 分钟",
+    "overview": "少女千寻误入神灵的世界。为了找回父母，她开始在汤屋工作，也在奇妙的旅途中找到了自己的勇气。",
+    "poster": "/assets/spirited.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 129
+  },
+  {
+    "id": "demo-blade",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "银翼杀手2049",
+    "originalTitle": "Blade Runner 2049",
+    "year": 2017,
+    "rating": 8,
+    "genres": [
+      "科幻",
+      "悬疑"
+    ],
+    "director": "丹尼斯·维伦纽瓦",
+    "duration": "164 分钟",
+    "overview": "一名复制人警探发现了一个足以改变社会秩序的秘密。他的追寻，最终指向失踪多年的前银翼杀手。",
+    "poster": "/assets/blade.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 335984
+  },
+  {
+    "id": "demo-inception",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "盗梦空间",
+    "originalTitle": "Inception",
+    "year": 2010,
+    "rating": 8.4,
+    "genres": [
+      "科幻",
+      "悬疑"
+    ],
+    "director": "克里斯托弗·诺兰",
+    "duration": "148 分钟",
+    "overview": "一支潜入梦境的团队，接下了一个看似不可能的任务：不再窃取想法，而是将一个想法植入他人的潜意识。",
+    "poster": "/assets/inception.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 27205
+  },
+  {
+    "id": "demo-oppenheimer",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "奥本海默",
+    "originalTitle": "Oppenheimer",
+    "year": 2023,
+    "rating": 8.1,
+    "genres": [
+      "剧情",
+      "历史"
+    ],
+    "director": "克里斯托弗·诺兰",
+    "duration": "181 分钟",
+    "overview": "科学家罗伯特·奥本海默走入原子时代的中心，在科学突破与道德困境之间，面对无法撤回的选择。",
+    "poster": "/assets/oppenheimer.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 872585
+  },
+  {
+    "id": "demo-arrival",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "降临",
+    "originalTitle": "Arrival",
+    "year": 2016,
+    "rating": 7.6,
+    "genres": [
+      "科幻",
+      "剧情"
+    ],
+    "director": "丹尼斯·维伦纽瓦",
+    "duration": "116 分钟",
+    "overview": "神秘飞船来到地球，语言学家路易丝尝试理解来访者的语言，也重新理解自己的生命与时间。",
+    "poster": "/assets/arrival.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 329865
+  },
+  {
+    "id": "demo-soul",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "心灵奇旅",
+    "originalTitle": "Soul",
+    "year": 2020,
+    "rating": 8.1,
+    "genres": [
+      "动画",
+      "奇幻"
+    ],
+    "director": "彼特·道格特",
+    "duration": "101 分钟",
+    "overview": "爵士乐手乔伊意外来到灵魂世界。在帮助一个新灵魂寻找生活火花的过程中，他看见了日常中细小的美好。",
+    "poster": "/assets/soul.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 508442
+  },
+  {
+    "id": "demo-truman",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "楚门的世界",
+    "originalTitle": "The Truman Show",
+    "year": 1998,
+    "rating": 8.1,
+    "genres": [
+      "剧情",
+      "喜剧"
+    ],
+    "director": "彼得·威尔",
+    "duration": "103 分钟",
+    "overview": "楚门生活在一座看似完美的海滨小镇，却逐渐发现，自己熟悉的世界可能是一场精心编排的演出。",
+    "poster": "/assets/truman.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 37165
+  },
+  {
+    "id": "demo-perfect",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "完美的日子",
+    "originalTitle": "Perfect Days",
+    "year": 2023,
+    "rating": 7.8,
+    "genres": [
+      "剧情"
+    ],
+    "director": "维姆·文德斯",
+    "duration": "124 分钟",
+    "overview": "东京的清洁工平山过着规律而安静的日子。音乐、书籍、树影和偶然相遇，让平凡生活泛起微光。",
+    "poster": "/assets/perfect.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 976893
+  },
+  {
+    "id": "demo-wall-e",
+    "sourceId": "demo",
+    "kind": "demo",
+    "title": "机器人总动员",
+    "originalTitle": "WALL·E",
+    "year": 2008,
+    "rating": 8.1,
+    "genres": [
+      "动画",
+      "科幻"
+    ],
+    "director": "安德鲁·斯坦顿",
+    "duration": "98 分钟",
+    "overview": "孤独的清扫机器人瓦力守望着被遗弃的地球，直到一位来自太空的访客让他的世界重新亮起。",
+    "poster": "/assets/wall-e.jpg",
+    "backdrop": "",
+    "streams": [],
+    "addedAt": "2026-01-01T00:00:00Z",
+    "tmdbId": 10681
+  }
+]

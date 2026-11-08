@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<movie>
+  <title>你的电影名称</title>
+  <originaltitle>Original title</originaltitle>
+  <year>2024</year>
+  <plot>填写影片简介。将本文件改名为 movie.nfo，放在对应视频的文件夹中。</plot>
+  <genre>剧情</genre>
+  <director>导演姓名</director>
+  <runtime>120</runtime>
+  <actor><name>演员姓名</name></actor>
+</movie>

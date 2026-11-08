@@ -1,0 +1,14 @@
+{
+  "name": "screen-room",
+  "version": "1.6.0",
+  "private": true,
+  "type": "module",
+  "description": "幕间 · 本地与 NAS 私人电影资料库",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs --open",
+    "dev": "node --watch server.mjs",
+    "test": "node --test",
+    "check": "node --check server.mjs && node --check lib/network.mjs && node --check lib/discovery.mjs && node --check lib/playback-tickets.mjs && node --check public/app.js && node --check public/mobile.js && node --check lib/duration.mjs && node --check public/theme.js && node --check public/movie-utils.js && node --check scripts/admin-client.mjs && node --check scripts/mcp-server.mjs && node --test"
+  }
+}

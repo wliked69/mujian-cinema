@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">幕间</string>
+    <string name="mobile_internal">App 内置播放</string>
+    <string name="mobile_external">手机外部播放器</string>
+    <string name="playback_time">%1$s / %2$s</string>
+</resources>

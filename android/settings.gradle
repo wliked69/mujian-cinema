@@ -1,0 +1,27 @@
+pluginManagement {
+    repositories {
+        if (providers.gradleProperty('useGoogleMirror').orNull == 'true') {
+            maven { url 'https://maven.aliyun.com/repository/google' }
+        }
+        google(); mavenCentral(); gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+        if (providers.gradleProperty('useGoogleMirror').orNull == 'true') {
+            maven {
+                url 'https://maven.aliyun.com/repository/google'
+                content {
+                    includeGroupByRegex 'androidx\\..*'
+                    includeGroupByRegex 'com\\.android.*'
+                    includeGroupByRegex 'com\\.google.*'
+                }
+            }
+        }
+        google()
+    }
+}
+rootProject.name = 'ScreenRoomAndroid'
+include ':app'
