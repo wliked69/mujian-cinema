@@ -4,6 +4,14 @@
 
 **Node.js 22+ · 无第三方 Node 运行依赖 · Windows 图形化管理 · Android 折叠屏客户端**
 
+## 下载
+
+进入 [Releases 下载页](https://github.com/wliked69/mujian-cinema/releases/latest)，不要把页面自动生成的 Source code 当作预编译程序。
+
+- **Windows 服务端**：下载 `Mujian-Cinema-Server-1.6.0-Windows.zip`，完整解压后双击 `ScreenRoom.exe`。压缩包内附网页、服务端和管理面板，不包含用户资料或 Node 运行环境；缺少 Node 时由启动器联网准备。
+- **Android 客户端**：下载 `Mujian-Cinema-Android-1.2.1-debug.apk`。Android 8.0+，需要连接自己的服务端。这是测试签名构建，并非应用商店正式版；尚未真机验证所有折叠状态与播放器。
+- `SHA256SUMS.txt` 提供附件校验值。Windows 程序由本项目源码构建，未附商业代码签名。
+
 ## 功能
 
 - 本地文件夹、NAS 挂载目录及 JSON / 苹果 CMS 兼容 API 来源；可读取 NFO 与 TMDB 电影资料。
