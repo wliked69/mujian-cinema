@@ -17,6 +17,8 @@ internal sealed class ScreenRoomPanel : Form
     private readonly string root = AppDomain.CurrentDomain.BaseDirectory;
     private readonly Label status, address, note;
     private readonly Button start, stop, restart, website, admin, backup;
+    private readonly Button copyAddress;
+    private readonly ComboBox browserChoice;
     private readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
     private readonly ConcurrentQueue<string> messages = new ConcurrentQueue<string>();
     private Phase phase;
@@ -48,7 +50,7 @@ internal sealed class ScreenRoomPanel : Form
         AutoScaleMode = AutoScaleMode.Dpi;
         Font = new Font("Microsoft YaHei UI", 10);
         BackColor = Color.FromArgb(243, 247, 245);
-        ClientSize = new Size(560, 375);
+        ClientSize = new Size(560, 420);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         AddLabel("幕间  /  SCREEN ROOM", 24, 20, 512, 34, 18, true);
@@ -60,8 +62,13 @@ internal sealed class ScreenRoomPanel : Form
         restart = AddButton("重启服务", 347, 176, 188, delegate { RequestStop(true, false); });
         website = AddButton("打开网站", 25, 224, 248, delegate { OpenBrowser("/"); });
         admin = AddButton("打开管理后台", 285, 224, 250, delegate { OpenBrowser("/admin"); });
-        backup = AddButton("一键备份网站资料…", 25, 272, 510, async delegate { await BackupWebsite(); });
-        note = AddLabel("关闭窗口会同时停止面板启动的网站。", 25, 323, 510, 42, 9, false);
+        AddLabel("浏览器", 25, 276, 65, 24, 10, false);
+        browserChoice = new ComboBox { Location = new Point(91, 272), Size = new Size(315, 30), DropDownStyle = ComboBoxStyle.DropDownList };
+        foreach (var choice in ScreenRoomBrowser.Choices()) browserChoice.Items.Add(choice);
+        browserChoice.SelectedIndex = 0; Controls.Add(browserChoice);
+        copyAddress = AddButton("复制地址", 420, 270, 115, delegate { CopyAddress(); });
+        backup = AddButton("一键备份网站资料…", 25, 315, 510, async delegate { await BackupWebsite(); });
+        note = AddLabel("关闭窗口会同时停止面板启动的网站。", 25, 365, 510, 42, 9, false);
         UpdateButtons();
         timer.Interval = 120;
         timer.Tick += Poll;
@@ -91,6 +98,7 @@ internal sealed class ScreenRoomPanel : Form
         start.Enabled = phase == Phase.Idle && !backingUp && !exitRequested;
         stop.Enabled = restart.Enabled = website.Enabled = admin.Enabled = phase == Phase.Running && !exitRequested;
         backup.Enabled = !backingUp && !exitRequested && (phase == Phase.Idle || phase == Phase.Running);
+        copyAddress.Enabled = phase == Phase.Running && !exitRequested;
     }
 
     private ProcessStartInfo HiddenProcess(string file, string args)
@@ -235,8 +243,18 @@ internal sealed class ScreenRoomPanel : Form
     private void OpenBrowser(string path)
     {
         if (phase != Phase.Running || port == 0) return;
-        try { Process.Start(new ProcessStartInfo("http://127.0.0.1:" + port + path) { UseShellExecute = true }); }
-        catch { MessageBox.Show(this, "无法打开默认浏览器，可复制面板中的地址手动访问。", "无法打开网站"); }
+        try {
+            ScreenRoomBrowser.Open(port, path, browserChoice.SelectedItem as ScreenRoomBrowserChoice,
+                browserChoice.Items.Cast<ScreenRoomBrowserChoice>(), info => { using (var process = Process.Start(info)) { return info.UseShellExecute || process != null; } });
+            note.Text = "如果浏览器未弹出，请切换上方浏览器，或点击「复制地址」。";
+        } catch (Exception error) { MessageBox.Show(this, error.Message, "无法打开网站", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+    }
+
+    private void CopyAddress()
+    {
+        if (phase != Phase.Running || port == 0) return;
+        try { Clipboard.SetText(ScreenRoomBrowser.Address(port, "/")); note.Text = "网站地址已复制，可粘贴到浏览器地址栏；管理入口为 /admin。"; }
+        catch { MessageBox.Show(this, "无法写入剪贴板，请手动输入面板显示的网站地址。", "复制未完成"); }
     }
 
     private void OnClosing(object sender, FormClosingEventArgs e)

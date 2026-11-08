@@ -1,0 +1,55 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import {once} from 'node:events';
+import {createApp} from '../server.mjs';
+import {portraitFormat,MAX_PORTRAIT_BYTES,initializePortraits} from '../lib/actor-portraits.mjs';
+
+const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aV9UAAAAASUVORK5CYII=','base64');
+test('头像格式白名单、体积与像素限制，不接收 SVG、HTML 或伪扩展名',async()=>{
+  assert.deepEqual(portraitFormat(png),{extension:'png',mime:'image/png',width:1,height:1});
+  const jpeg=await fs.readFile(new URL('../public/assets/dune.jpg',import.meta.url));assert.equal(portraitFormat(jpeg).extension,'jpg');
+  for(const bytes of [Buffer.from('<svg onload="alert(1)"></svg>'),Buffer.alloc(50),Buffer.alloc(MAX_PORTRAIT_BYTES+1)])assert.throws(()=>portraitFormat(bytes));
+  const oversized=Buffer.from(png);oversized.writeUInt32BE(9000,16);assert.throws(()=>portraitFormat(oversized),/尺寸/);
+  assert.throws(()=>initializePortraits({actorPortraits:[{name:'演员',photo:'file:///secret'}]}),/格式/);
+});
+
+test('真实头像上传：仅管理员网页、可见性继承影片权限、手动优先本地图片、全片库同名共用、重启保留及恢复',async t=>{
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'cinema-portrait-')),dataDir=path.join(root,'data'),original=path.join(root,'original.png');await fs.writeFile(original,png);
+  let app=await createApp({dataDir});t.after(async()=>{await app.shutdown();await fs.rm(root,{recursive:true,force:true});});
+  app.server.listen(0,'127.0.0.1');await once(app.server,'listening');let base='http://127.0.0.1:'+app.server.address().port;
+  const req=(route,cookie='',data,method=data===undefined?'GET':'POST',headers={})=>fetch(base+route,{method,headers:{Cookie:cookie,'X-Cinema-Client':'local','Content-Type':Buffer.isBuffer(data)?'image/png':'application/json',...headers},...(data===undefined?{}:{body:Buffer.isBuffer(data)?data:JSON.stringify(data)})});
+  const setup=await req('/api/auth/setup','',{username:'portrait-admin',password:'a'}),admin=setup.headers.get('set-cookie').split(';')[0];
+  app.store.state.sources=[{id:'a',type:'local',name:'家庭',path:root},{id:'b',type:'local',name:'私人',path:root}];
+  app.store.state.libraries=[{id:'public',name:'家庭',sourceIds:['a'],revision:1},{id:'private',name:'私人',sourceIds:['b'],revision:1}];
+  app.store.state.movies=[{id:'public-film',sourceId:'a',cast:'测试演员',actors:[{name:'测试演员',photo:'https://example.test/source.jpg'}],actorPhotoFiles:[{name:'测试演员',filePath:original}]},{id:'private-film',sourceId:'b',cast:'测试演员 / 私人演员',actors:[{name:'测试演员',photo:''},{name:'私人演员',photo:''}]}].map(m=>({...m,title:m.id,kind:'local',genreModel:2,genres:[],rootPath:root}));
+  await req('/api/admin/users',admin,{username:'portrait-viewer',password:'b',libraryAccess:{libraryIds:['public'],genres:null}});
+  const logged=await req('/api/auth/login','',{username:'portrait-viewer',password:'b'}),viewer=logged.headers.get('set-cookie').split(';')[0];
+  const endpoint='/api/admin/actors/portrait?name='+encodeURIComponent('测试演员');
+  assert.equal((await req(endpoint,'',png)).status,401);
+  assert.equal((await req(endpoint,viewer,png)).status,403);
+  assert.equal((await req(endpoint,admin,png,'POST',{Origin:'https://evil.example'})).status,403);
+  const token=await (await req('/api/admin/tokens',admin,{scope:'write'})).json();assert.equal((await req(endpoint,'',png,'POST',{Authorization:'Bearer '+token.token})).status,403);
+  assert.equal((await req(endpoint,admin,Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),'POST',{'Content-Type':'image/svg+xml'})).status,400);
+  assert.equal((await req(endpoint,admin,png,'POST',{'Content-Type':'image/jpeg'})).status,400);
+  assert.equal((await req('/api/admin/actors/portrait?name=unknown',admin,png)).status,404);
+  assert.equal(app.store.state.actorPortraits.length,0);
+  const uploaded=await req(endpoint,admin,png);assert.equal(uploaded.status,200);const result=await uploaded.json();assert.match(result.photo,/^\/media\/actors\/manual-[a-f0-9]{64}\.png$/);
+  let catalog=await (await req('/api/library',viewer)).json();assert.equal(catalog.movies[0].actors[0].photo,result.photo);
+  const all=await (await req('/api/library',admin)).json();assert.equal(all.movies[1].actors[0].photo,result.photo);
+  assert.equal(app.store.state.movies[0].actors[0].photo,'https://example.test/source.jpg');assert.deepEqual(await fs.readFile(original),png);
+  const photo=await req(result.photo,viewer);assert.equal(photo.status,200);assert.equal(photo.headers.get('content-type'),'image/png');assert.equal(photo.headers.get('cache-control'),'private, no-store');assert.deepEqual(Buffer.from(await photo.arrayBuffer()),png);
+  assert.equal((await req(result.photo,viewer,undefined,'HEAD')).status,200);
+  const jpeg=await fs.readFile(new URL('../public/assets/dune.jpg',import.meta.url));
+  const secret=await (await req('/api/admin/actors/portrait?name='+encodeURIComponent('私人演员'),admin,jpeg,'POST',{'Content-Type':'image/jpeg'})).json();
+  assert.equal((await req(secret.photo,viewer)).status,404);assert.equal((await req(secret.photo,admin)).status,200);
+  await app.store.save();await app.shutdown();app=await createApp({dataDir});app.server.listen(0,'127.0.0.1');await once(app.server,'listening');base='http://127.0.0.1:'+app.server.address().port;
+  catalog=await (await req('/api/library',viewer)).json();assert.equal(catalog.movies[0].actors[0].photo,result.photo);
+  assert.equal((await req(endpoint,viewer,{},'DELETE')).status,403);
+  assert.equal((await req(endpoint,admin,{},'DELETE')).status,200);
+  catalog=await (await req('/api/library',viewer)).json();assert.equal(catalog.movies[0].actors[0].photo,'/media/public-film/actor?index=0');
+  assert.equal((await req(result.photo,viewer)).status,404);
+  const html=await fs.readFile(new URL('../public/index.html',import.meta.url),'utf8');assert.match(html,/id="actor-portrait-upload"/);assert.match(html,/id="actor-portrait-file" type="file"/);
+});

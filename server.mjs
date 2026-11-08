@@ -23,6 +23,7 @@ import { sendMovieBackup } from './lib/movie-backup.mjs';
 import { planLocalRelocation } from './lib/relocation.mjs';
 import { libraryAccess, movieAccess, canViewMovie, canViewSource, visibleLibraries, referencesImage } from './lib/library-access.mjs';
 import { initializeLibraries, planLibrary } from './lib/libraries.mjs';
+import { initializePortraits, portraitMap, actorKey, movieActors, readPortrait, savePortraitFile } from './lib/actor-portraits.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(HERE, 'public');
@@ -50,6 +51,9 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
   const canShutdown = typeof onShutdown === 'function';
   const state = store.state;
   initializeLibraries(state);
+  initializePortraits(state);
+  let actorPortraitLookup = portraitMap(state.actorPortraits), portraitBusy = false;
+  const exposedMovie = (movie, favorites) => publicMovie(movie, favorites, actorPortraitLookup);
   for (const movie of state.movies) {
     if (movie.kind === 'local' && movie.genreModel !== 2) {
       const group = state.sources.find(source => source.id === movie.sourceId)?.category;
@@ -232,6 +236,22 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
         user.passwordHash = await hashPassword(input.password); user.authVersion++; auth.logout(req, res); auth.audit(user, 'auth.password'); await store.save(); return json(res, 200, { ok: true });
       }
       if (req.method === 'GET' && pathname === '/api/admin/users') return json(res, 200, { users: auth.userSummaries() });
+      if (['POST', 'DELETE'].includes(req.method) && pathname === '/api/admin/actors/portrait') {
+        if (actor.token || !actor.session) return json(res, 403, { error: '请使用管理员网页会话上传头像。' });
+        const inputName = url.searchParams.get('name') || '', name = clean(inputName, 100), key = actorKey(name);
+        if (!name || inputName.length > 100 || !state.movies.some(m => movieActors(m).some(a => actorKey(a) === key))) return json(res, 404, { error: '请先选择已导入影片中的演员。' });
+        if (portraitBusy) return json(res, 409, { error: '已有头像正在保存，请稍后重试。' });
+        portraitBusy = true;
+        const previous = state.actorPortraits;
+        try {
+          const photo = req.method === 'POST' ? await savePortraitFile(dataDir, await readPortrait(req)) : '';
+          state.actorPortraits = [...previous.filter(p => actorKey(p.name) !== key), ...(photo ? [{ name, photo, updatedAt: new Date().toISOString() }] : [])];
+          auth.audit(user, photo ? 'actor.portrait.upload' : 'actor.portrait.reset', 'ok', name);
+          try { await store.save(); } catch (error) { state.actorPortraits = previous; throw error; }
+          actorPortraitLookup = portraitMap(state.actorPortraits);
+          return json(res, 200, { name, photo, reset: !photo });
+        } finally { portraitBusy = false; }
+      }
       if (req.method === 'GET' && pathname === '/api/admin/movie-backup') {
         if (actor.token || !actor.session || req.headers['sec-fetch-site'] === 'cross-site') return json(res, 403, { error: '请在网站后台使用管理员账号下载备份。' });
         if (backingUp) return json(res, 429, { error: '已有备份正在下载，请稍后重试。' });
@@ -332,14 +352,14 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
         token.revoked = true; auth.audit(user, 'token.revoke', 'ok', token.id); await store.save(); return json(res, 200, { ok: true });
       }
       if (req.method === 'GET' && pathname === '/api/openapi.json') return json(res, 200, { ...openapi, servers: [{ url: url.origin }] });
-      if (req.method === 'GET' && pathname === '/api/admin/diagnostics') return json(res, 200, { app: 'screen-room', version: '1.6.0', node: process.version, platform: process.platform, uptime: Math.round(process.uptime()),
+      if (req.method === 'GET' && pathname === '/api/admin/diagnostics') return json(res, 200, { app: 'screen-room', version: '1.6.1', node: process.version, platform: process.platform, uptime: Math.round(process.uptime()),
         users: state.users.length, sources: state.sources.length, movies: state.movies.length, job: { status: job.status, found: job.found, folders: job.folders }, updatedAt: state.updatedAt, externalCredentials: { tmdbConfigured: state.sources.some(s => s.provider === 'tmdb' && !!s.token) },
         capabilities: ['nas-scan', 'nfo', 'range-streaming', 'tmdb-match', 'roles', 'scoped-debug-token', 'manual-genres', 'windows-external-player', 'unified-settings', 'full-site-theme', 'random-nine', 'ai-classification', 'metadata-facets', 'local-comments', 'random-page', 'duration-probe', 'actor-gallery', 'tv-episodes', 'release-date', 'ipv6-dual-stack', 'lan-discovery', 'mobile-playback-ticket'], transcoding: false });
       if (req.method === 'GET' && pathname === '/api/admin/audit') return json(res, 200, { events: state.audit.slice(-100).reverse() });
       if (actor && req.method !== 'GET' && req.method !== 'HEAD' && !/\/(progress|favorite)$/.test(pathname)) auth.audit(user, `api.${req.method.toLowerCase()}`, 'requested', pathname.replace(/[^/]+$/, ':id'));
       if (req.method === 'GET' && pathname === '/api/library') {
         const visible = getMovies().filter(movieAccess(user, state.libraries)), ids = new Set(visible.map(m => m.id));
-        return json(res, 200, { movies: visible.map(m => actor.token ? toolMovie(m) : publicMovie(m, profile.favorites)),
+        return json(res, 200, { movies: visible.map(m => actor.token ? toolMovie(m) : exposedMovie(m, profile.favorites)),
           libraries: visibleLibraries(user, state.libraries).map(l => ({ ...l, count: visible.filter(m => l.sourceIds.includes(m.sourceId)).length })),
           unassignedSourceIds: user.role === 'admin' && !actor.token ? state.sources.filter(s => !state.libraries.some(l => l.sourceIds.includes(s.id))).map(s => s.id) : undefined,
           sources: state.sources.filter(s => canViewSource(user, s, state.libraries)).map(s => user.role === 'admin' && !actor.token ? safeSource(s) : { id: s.id, type: s.type, name: s.name, count: visible.filter(m => m.sourceId === s.id).length }),
@@ -498,7 +518,7 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
           const portraitNames = [...new Set([...names(movie.cast || ''), ...Object.keys(actorPhotos)])];
           movie.actors = portraitNames.map(name => ({ name, photo: actorPhotos[name] || '' }));
         }
-        auth.audit(user, 'movie.facts', 'ok', movie.id); await store.save(); return json(res, 200, publicMovie(movie, profile.favorites));
+        auth.audit(user, 'movie.facts', 'ok', movie.id); await store.save(); return json(res, 200, exposedMovie(movie, profile.favorites));
       }
       const originalFile = pathname.match(/^\/api\/movies\/([^/]+)\/file$/);
       if (req.method === 'POST' && originalFile) {
@@ -528,7 +548,7 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
         if (!movie) return json(res, 404, { error: '请先导入自己的影片，示例片库不可编辑。' });
         setGenres(movie, await body(req));
         auth.audit(user, 'movie.genres', 'ok', movie.id); await store.save();
-        return json(res, 200, actor.token ? toolMovie(movie) : publicMovie(movie, profile.favorites));
+        return json(res, 200, actor.token ? toolMovie(movie) : exposedMovie(movie, profile.favorites));
       }
       const openExternal = pathname.match(/^\/api\/movies\/([^/]+)\/open-external$/);
       if (req.method === 'POST' && openExternal) {
@@ -590,18 +610,18 @@ export async function createApp({ dataDir = path.join(HERE, 'data'), fetcher = f
         applyManualFacts(movie);
         if (detail.poster_path) movie.poster = `https://image.tmdb.org/t/p/w500${detail.poster_path}`;
         if (detail.backdrop_path) movie.backdrop = `https://image.tmdb.org/t/p/w1280${detail.backdrop_path}`;
-        movie.tmdbId = detail.id; await store.save(); return json(res, 200, publicMovie(movie, profile.favorites));
+        movie.tmdbId = detail.id; await store.save(); return json(res, 200, exposedMovie(movie, profile.favorites));
       }
       const cachedCover = pathname.match(/^\/media\/covers\/([A-Za-z0-9_-]+)\.(jpg|jpeg|png|webp)$/i);
       if (['GET', 'HEAD'].includes(req.method) && cachedCover) {
-        if (user.role !== 'admin' && !getMovies().some(m => canViewMovie(user, m, state.libraries) && referencesImage(m, pathname))) return json(res, 404, { error: '封面不存在或无权访问。' });
+        if (user.role !== 'admin' && !getMovies().some(m => canViewMovie(user, m, state.libraries) && referencesImage(m, pathname, actorPortraitLookup))) return json(res, 404, { error: '封面不存在或无权访问。' });
         const file = path.join(coversDir, `${cachedCover[1]}.${cachedCover[2].toLowerCase()}`);
         if (!existsSync(file)) return json(res, 404, { error: '封面不存在。' });
         return await sendFile(req, res, await fs.realpath(file), true);
       }
       const cachedAvatar = pathname.match(/^\/media\/actors\/([A-Za-z0-9_-]+)\.(jpg|jpeg|png|webp)$/i);
       if (['GET', 'HEAD'].includes(req.method) && cachedAvatar) {
-        if (user.role !== 'admin' && !getMovies().some(m => canViewMovie(user, m, state.libraries) && referencesImage(m, pathname))) return json(res, 404, { error: '头像不存在或无权访问。' });
+        if (user.role !== 'admin' && !getMovies().some(m => canViewMovie(user, m, state.libraries) && referencesImage(m, pathname, actorPortraitLookup))) return json(res, 404, { error: '头像不存在或无权访问。' });
         const file = path.join(actorsDir, `${cachedAvatar[1]}.${cachedAvatar[2].toLowerCase()}`);
         if (!existsSync(file)) return json(res, 404, { error: '头像不存在。' });
         return await sendFile(req, res, await fs.realpath(file), true);

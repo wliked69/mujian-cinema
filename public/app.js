@@ -55,6 +55,7 @@ let userPreferences = { ...DEFAULT_APPEARANCE, playback: 'browser', player: 'def
 let heartbeatTimer = null, loginMonitorTimer = null, networkState = null, launchingExternal = false;
 let shutdownRequested = false, launchingMobile = false;
 let streamChangeVersion = 0;
+let portraitUploading = false;
 let activeLibrary = null;
 const visibleMovies = () => scopedMovies(library, activeLibrary);
 let facetFilter = '', facetFilterValue = '';
@@ -978,9 +979,38 @@ function renderActorProfile() {
     if (src) photo.setAttribute('src', src); else photo.removeAttribute('src');
   }
   if (!actor) return;
+  $('#actor-portrait-reset').hidden = !isAdmin() || !actor.photo?.startsWith('/media/actors/manual-');
   $('#actor-profile-name').textContent = actor.name;
   $('#actor-profile-count').textContent = `${actor.count} 部参演影片`;
 }
+$('#actor-portrait-upload').addEventListener('click', () => {
+  if (isAdmin() && !portraitUploading) $('#actor-portrait-file').click();
+});
+async function updateActorPortrait(file) {
+  if (!isAdmin() || portraitUploading || !actorFilter) return;
+  const actor = actorDirectory.find(a => a.name.toLocaleLowerCase() === actorFilter.toLocaleLowerCase()); if (!actor) return;
+  const status = $('#actor-portrait-status'), buttons = [$('#actor-portrait-upload'), $('#actor-portrait-reset')];
+  status.hidden = false; status.className = 'field-hint'; status.textContent = file ? '正在上传头像…' : '正在恢复资料头像…';
+  portraitUploading = true; buttons.forEach(button => { button.disabled = true; });
+  try {
+    const endpoint = '/api/admin/actors/portrait?name=' + encodeURIComponent(actor.name);
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) throw new Error('头像不能超过 5 MB。');
+      if (file.type && !['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('请选择 JPG、PNG 或 WebP 图片。');
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'X-Cinema-Client': 'local', 'Content-Type': file.type === 'image/jpg' ? 'image/jpeg' : file.type || 'application/octet-stream' }, body: file });
+      const result = await response.json();
+      if (response.status === 401) { currentUser = null; showAuth(false); }
+      if (!response.ok) throw new Error(result.error || '头像上传失败。');
+    } else await api(endpoint, {}, 'DELETE');
+    library = await api('/api/library'); render();
+    status.textContent = actor.name + (file ? '的头像已保存，同名演员共用此头像。' : '已恢复来源资料中的头像。');
+  } catch (error) { status.className = 'inline-error'; status.textContent = error.message; }
+  finally { portraitUploading = false; buttons.forEach(button => { button.disabled = false; }); $('#actor-portrait-file').value = ''; }
+}
+$('#actor-portrait-file').addEventListener('change', event => { const file = event.target.files?.[0]; if (file) updateActorPortrait(file); });
+$('#actor-portrait-reset').addEventListener('click', () => {
+  if (isAdmin() && confirm('恢复资料头像？只撤销本站上传的覆盖，不改 NAS 或 NFO 图片。')) updateActorPortrait(null);
+});
 function renderActors() {
   const all=actorDirectory, term=$('#actor-search').value.trim().toLocaleLowerCase(), found=all.filter(a=>a.name.toLocaleLowerCase().includes(term));
   $('#actors-count').textContent=String(all.length);

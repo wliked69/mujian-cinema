@@ -23,6 +23,8 @@ internal static class ScreenRoomBackup
         if (IsLink(data) || IsLink(library)) throw new InvalidOperationException("数据目录或资料文件是链接，未创建备份。");
         var covers = Path.Combine(data, "covers");
         if (Directory.Exists(covers) && IsLink(covers)) throw new InvalidOperationException("封面目录是链接，未创建备份。");
+        var actors = Path.Combine(data, "actors");
+        if (Directory.Exists(actors) && IsLink(actors)) throw new InvalidOperationException("演员头像目录是链接，未创建备份。");
         var temp = Path.Combine(Path.GetDirectoryName(destination), ".screenroom-" + Guid.NewGuid().ToString("N") + ".partial");
         bool created = false;
         try
@@ -33,13 +35,14 @@ internal static class ScreenRoomBackup
                 using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
                 {
                     Add(zip, library, "data/library.json");
-                    if (Directory.Exists(covers))
+                    foreach (var images in new[] { covers, actors })
                     {
+                        if (!Directory.Exists(images)) continue;
                         var types = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                        foreach (var file in Directory.EnumerateFiles(covers))
+                        foreach (var file in Directory.EnumerateFiles(images))
                         {
                             if (types.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase) && !IsLink(file))
-                                Add(zip, file, "data/covers/" + Path.GetFileName(file));
+                                Add(zip, file, "data/" + Path.GetFileName(images) + "/" + Path.GetFileName(file));
                         }
                     }
                 }

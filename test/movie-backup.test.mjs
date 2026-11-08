@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { createApp } from '../server.mjs';
 import { startListening, closeListeners } from '../lib/network.mjs';
@@ -32,8 +32,12 @@ test('影片备份：仅管理员会话下载，压缩包保留资料、手动�
   const cover = Buffer.from([0xff, 0xd8, 0xff, 0xd9]); // Minimal JPEG fixture, never rendered.
   await fs.writeFile(path.join(covers, 'fixture.jpg'), cover);
   await fs.writeFile(path.join(covers, 'unused.jpg'), cover);
+  const portraitName = 'manual-' + createHash('sha256').update(cover).digest('hex') + '.jpg';
+  await fs.mkdir(path.join(dataDir, 'actors'));
+  await fs.writeFile(path.join(dataDir, 'actors', portraitName), cover);
   const marker = randomBytes(12).toString('hex');
   await fs.writeFile(path.join(dataDir, 'library.json'), JSON.stringify({
+    actorPortraits: [{ name: '测试演员', photo: '/media/actors/' + portraitName, updatedAt: '2026-11-08T00:00:00.000Z' }],
     libraries: [{id:'collection',name:'自定义剧集库',sourceIds:['api'],revision:2}],
     sources: [{ id: 'api', type: 'api', provider: 'generic', name: '测试源', url: 'https://example.test/?key=' + marker, token: marker }],
     movies: [{
@@ -71,14 +75,16 @@ test('影片备份：仅管理员会话下载，压缩包保留资料、手动�
   assert.match(response.headers.get('content-disposition'), /attachment; filename="screenroom-movies-.+\.tar\.gz"/);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const files = untar(await response.arrayBuffer());
-  assert.deepEqual([...files.keys()], ['movies.json', 'covers/fixture.jpg', 'manifest.json']);
+  assert.deepEqual([...files.keys()], ['movies.json', 'covers/fixture.jpg', 'actors/' + portraitName, 'manifest.json']);
   assert.deepEqual(files.get('covers/fixture.jpg'), cover);
+  assert.deepEqual(files.get('actors/' + portraitName), cover);
   const json = files.get('movies.json').toString();
   assert.ok(!json.includes(marker) && !json.includes(account.username));
   const data = JSON.parse(json);
   assert.equal(data.format, 'screenroom-movie-backup');
   assert.equal(data.version, 1);
   assert.deepEqual(data.libraries,[{id:'collection',name:'自定义剧集库',sourceIds:['api'],revision:2}]);
+  assert.deepEqual(data.actorPortraits, [{ name: '测试演员', photo: '/media/actors/' + portraitName, updatedAt: '2026-11-08T00:00:00.000Z' }]);
   assert.equal(data.movies[0].title, '示例剧');
   assert.deepEqual(data.movies[0].manualGenres, ['手动']);
   assert.equal(data.movies[0].manualFacts.cast, '测试演员');
@@ -89,4 +95,6 @@ test('影片备份：仅管理员会话下载，压缩包保留资料、手动�
   const manifest = JSON.parse(files.get('manifest.json'));
   assert.deepEqual(manifest.skippedCovers, ['missing.png']);
   assert.deepEqual(manifest.includedCovers, ['fixture.jpg']);
+  assert.deepEqual(manifest.includedActorPortraits, [portraitName]);
+  assert.deepEqual(manifest.skippedActorPortraits, []);
 });

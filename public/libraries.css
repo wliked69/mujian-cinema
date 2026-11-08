@@ -11,6 +11,9 @@
 body[data-library-picker] .actors-rail { display: none; }
 body[data-library-picker] .content-layout { grid-template-columns: minmax(0, 1fr); }
 #switch-library { flex: none; white-space: nowrap; min-height: 40px; }
+.actor-portrait-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 12px; }
+.actor-portrait-actions small { flex-basis: 100%; color: var(--muted); font-size: 11px; line-height: 1.7; }
+#actor-portrait-status { margin-top: 10px; }
 #user-access { border: 1px solid var(--line); border-radius: 10px; margin: 20px 0; padding: 16px; min-width: 0; }
 #user-access legend { font-size: 13px; padding: 0 8px; }
 .access-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px 14px; max-height: 220px; overflow-y: auto; margin: 8px 0 20px; }

@@ -37,6 +37,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.ValueCallback;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -49,6 +50,8 @@ import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import androidx.core.util.Consumer;
 import androidx.window.java.layout.WindowInfoTrackerCallbackAdapter;
@@ -97,6 +100,8 @@ public final class MainActivity extends ComponentActivity {
     private int discoveryGeneration;
     private TextView discoveryStatus;
     private Button searchButton;
+    private ValueCallback<Uri[]> pendingImageChoice;
+    private final ActivityResultLauncher<String[]> imagePicker = registerForActivityResult(new ActivityResultContracts.OpenDocument(), this::completeImageChoice);
 
     private final Runnable playbackPoll = new Runnable() {
         @Override public void run() {
@@ -238,7 +243,7 @@ public final class MainActivity extends ComponentActivity {
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setSafeBrowsingEnabled(true);
         settings.setGeolocationEnabled(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " ScreenRoomAndroid/1.2.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " ScreenRoomAndroid/1.2.2");
         installMobileBridge(webView);
         CookieManager cookies = CookieManager.getInstance();
         cookies.setAcceptCookie(true);
@@ -258,6 +263,7 @@ public final class MainActivity extends ComponentActivity {
                 return true;
             }
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                cancelImageChoice();
                 ready = false;
                 if (server == null || !server.contains(url)) {
                     view.stopLoading(); showError("已阻止离开当前片库的页面跳转。"); return;
@@ -285,6 +291,14 @@ public final class MainActivity extends ComponentActivity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (view != webView || !trustedPage() || destroyed || params.getMode() != FileChooserParams.MODE_OPEN) return false;
+                // Only a user-chosen image from the Android document picker, never arbitrary file paths.
+                cancelImageChoice(); pendingImageChoice = callback;
+                try { imagePicker.launch(new String[] { "image/jpeg", "image/png", "image/webp" }); }
+                catch (RuntimeException error) { cancelImageChoice(); toast("无法打开图片选择器，请使用手机浏览器上传。 "); }
+                return true;
+            }
             @Override public void onProgressChanged(WebView view, int value) {
                 progress.setProgress(value);
                 if (value == 100) progress.setVisibility(View.GONE);
@@ -513,6 +527,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void connect(ServerAddress selected) {
+        cancelImageChoice();
         hideCustomView();
         pauseVideo();
         preferences.edit().putString("server", selected.url()).apply();
@@ -713,6 +728,7 @@ public final class MainActivity extends ComponentActivity {
         super.onSaveInstanceState(out);
     }
     @Override protected void onDestroy() {
+        cancelImageChoice();
         stopDiscovery();
         destroyed = true; handler.removeCallbacksAndMessages(null);
         if (connectionDialog != null) connectionDialog.dismiss();
@@ -722,6 +738,23 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+    private void cancelImageChoice() {
+        ValueCallback<Uri[]> callback = pendingImageChoice; pendingImageChoice = null;
+        if (callback != null) callback.onReceiveValue(null);
+    }
+    private void completeImageChoice(Uri image) {
+        ValueCallback<Uri[]> callback = pendingImageChoice; pendingImageChoice = null;
+        if (callback == null) return;
+        if (destroyed || !trustedPage() || image == null || !"content".equals(image.getScheme())) { callback.onReceiveValue(null); return; }
+        try {
+            String type = getContentResolver().getType(image);
+            if (!"image/jpeg".equals(type) && !"image/png".equals(type) && !"image/webp".equals(type)) throw new IllegalArgumentException();
+            try (android.content.res.AssetFileDescriptor file = getContentResolver().openAssetFileDescriptor(image, "r")) {
+                if (file == null || file.getLength() > 5L * 1024 * 1024) throw new IllegalArgumentException();
+            }
+            callback.onReceiveValue(new Uri[] { image });
+        } catch (Exception error) { callback.onReceiveValue(null); toast("请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片。"); }
+    }
     private TextView text(String value, int size, int color) {
         TextView view = new TextView(this);
         view.setText(value); view.setTextSize(size); view.setTextColor(color);

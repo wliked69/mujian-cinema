@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="/workspace.css?v=1.6.0-shutdown">
   <link rel="stylesheet" href="/covers.css?v=1.6.0-play-icon">
   <link rel="stylesheet" href="/mobile-layout.css?v=1.6.0-home">
-  <link rel="stylesheet" href="/libraries.css?v=1.6.0-custom-libraries">
-  <script type="module" src="/app.js?v=1.6.0-custom-libraries"></script>
+  <link rel="stylesheet" href="/libraries.css?v=1.6.1-actor-portrait">
+  <script type="module" src="/app.js?v=1.6.1-actor-portrait"></script>
 </head>
 <body class="signed-out">
   <a class="skip-link" href="#catalog">跳到影片列表</a>
@@ -42,7 +42,7 @@
     </header>
     <div class="content-layout"><main>
       <div id="library-page">
-      <section class="actor-profile" id="actor-profile" aria-labelledby="actor-profile-name" hidden><div class="actor-profile-portrait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke-linecap="round"/></svg><img id="actor-profile-image" alt="" hidden></div><div class="actor-profile-info"><h1 id="actor-profile-name" tabindex="-1"></h1><p id="actor-profile-count"></p></div></section>
+      <section class="actor-profile" id="actor-profile" aria-labelledby="actor-profile-name" hidden><div class="actor-profile-portrait"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke-linecap="round"/></svg><img id="actor-profile-image" alt="" hidden></div><div class="actor-profile-info"><h1 id="actor-profile-name" tabindex="-1"></h1><p id="actor-profile-count"></p><div id="actor-portrait-actions" class="admin-only actor-portrait-actions" hidden><button type="button" class="button secondary" id="actor-portrait-upload">上传演员头像</button><button type="button" class="text-button" id="actor-portrait-reset" hidden>恢复资料头像</button><input id="actor-portrait-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="选择演员头像图片" hidden><small>支持 JPG、PNG、WebP，最大 5 MB。同名演员在各片库共用；不改 NAS 原图。</small></div><p id="actor-portrait-status" class="field-hint" role="status" hidden></p></div></section>
       <section class="catalog" id="catalog" aria-label="影片列表">
         <div class="catalog-status"><span class="local-status" id="library-status"><i></i> 本地示例片库</span></div>
         <div class="catalog-toolbar"><div class="genre-tabs" id="genre-tabs" aria-label="类型筛选"></div><div class="filter-controls"><label><span class="sr-only">文件夹归档筛选</span><select id="folder-filter" aria-label="文件夹归档筛选"><option value="">全部文件夹归档</option></select></label><label><span class="sr-only">年份筛选</span><select id="year-filter"><option value="">所有年份</option></select></label><label><span class="sr-only">来源筛选</span><select id="source-filter"><option value="">所有来源</option></select></label></div></div>
